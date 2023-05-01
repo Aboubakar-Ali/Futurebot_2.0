@@ -7,6 +7,7 @@ import config
 
 from module1 import CommandHistory
 from module2 import queue
+from module3 import *
 
 # Création des intents pour le bot
 intents = discord.Intents.all()
@@ -21,12 +22,32 @@ bot.command_queue = queue("première commande")
 
 ignored_commands = ["!lastcmd", "!forward", "!back", "!history", "!clear_history"]
 
+################################################ Création de l'arbre binaire #################################################################
+root = BinaryTreeNode("Quel langage de programmation souhaitez-vous apprendre (Python ou Java) ?")
+left_child = BinaryTreeNode("Voulez-vous apprendre les bases de Python ou les concepts avancés ?")
+right_child = BinaryTreeNode("Voulez-vous apprendre les bases de Java ou les concepts avancés ?")
+python_basic = BinaryTreeNode("Vous pouvez commencer par le cours Python pour les débutants. Voulez-vous que je vous propose des liens ?")
+python_advanced = BinaryTreeNode("Vous pouvez consulter le cours Python avancé. Voulez-vous que je vous propose des liens ?")
+java_basic = BinaryTreeNode("Vous pouvez commencer par le cours Java pour les débutants. Voulez-vous que je vous propose des liens ?")
+java_advanced = BinaryTreeNode("Vous pouvez consulter le cours Java avancé. Voulez-vous que je vous propose des liens ?")
+
+root.left = left_child
+root.right = right_child
+left_child.left = python_basic
+left_child.right = python_advanced
+right_child.left = java_basic
+right_child.right = java_advanced
+
+question_tree = BinaryTree(root)
+
+
+############################################################## Commandes de Bases ################################################################################
 
 # Définition d'un événement pour quand le bot est prêt
 @bot.event
 async def on_ready():
     print(f"{bot.user.name} has connected to Discord!")
-    # await send_motivation_quote() #teste de l'envoi de la citation
+    await send_motivation_quote() #teste de l'envoi de la citation
 
 # Définition d'une commande pour supprimer les messages en masse(limitation à 10)
 @bot.command(name="del")
@@ -93,12 +114,18 @@ async def clear_history(ctx):
     bot.history.clear()
     await ctx.send("L'historique a été supprimé.")
 
+########################################################### datetime ############################################################################
+
 # Affichage de la date et de l'heure actuelles
 @bot.command(name="datetime")
 async def current_datetime(ctx):
     now = datetime.datetime.now()
     await ctx.send(f"La date et l'heure actuelles sont : {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
+
+
+######################################################## API message motivation ##################################################################
+ 
 # Récupération d'une citation motivante aléatoire
 async def get_random_motivation_quote():
     async with aiohttp.ClientSession() as session:
@@ -124,6 +151,79 @@ scheduler = AsyncIOScheduler()
 scheduler.add_job(send_motivation_quote, 'cron', hour=6, minute=0)
 scheduler.start()
 
+
+
+####################################################### Commandes arbre ###########################################################################
+
+
+@bot.command(name="helps")
+async def helps(ctx):
+    question = question_tree.get_current_question()
+    await ctx.send(question)
+
+@bot.command(name="python")
+async def python(ctx):
+    question_tree.traverse_left()
+    question = question_tree.get_current_question()
+    await ctx.send(question)
+
+@bot.command(name="java")
+async def java(ctx):
+    question_tree.traverse_right()
+    question = question_tree.get_current_question()
+    await ctx.send(question)
+
+@bot.command(name="bases")
+async def bases(ctx):
+    question_tree.traverse_left()
+    answer = question_tree.get_current_question()
+    await ctx.send(answer)
+
+@bot.command(name="avancés")
+async def advanced(ctx):
+    question_tree.traverse_right()
+    answer = question_tree.get_current_question()
+    await ctx.send(answer)
+
+@bot.command(name="reset")
+async def reset(ctx):
+    question_tree.reset()
+    question = question_tree.get_current_question()
+    await ctx.send("La conversation a été réinitialisée.")
+    await ctx.send(question)
+
+
+@bot.command(name="oui")
+async def oui(ctx):
+    if question_tree.current_node == python_basic:
+        links = "Voici quelques liens pour apprendre les bases de Python :\nOpenclassrooms: https://openclassrooms.com/fr/courses/235344-apprenez-a-programmer-en-python\nW3Schools: https://www.w3schools.com/python/"
+    elif question_tree.current_node == python_advanced:
+        links = "Voici quelques liens pour apprendre les concepts avancés de Python :\nOpenclassrooms: https://openclassrooms.com/fr/courses/4425111-apprenez-a-creer-votre-site-web-avec-html5-et-css3\nW3Schools: https://www.w3schools.com/python/"
+    elif question_tree.current_node == java_basic:
+        links = "Voici quelques liens pour apprendre les bases de Java :\nOpenclassrooms: https://openclassrooms.com/fr/courses/26832-apprenez-a-programmer-en-java\nW3Schools: https://www.w3schools.com/java/"
+    elif question_tree.current_node == java_advanced:
+        links = "Voici quelques liens pour apprendre les concepts avancés de Java :\nOpenclassrooms: https://openclassrooms.com/fr/courses/2654566-decouvrez-les-fonctionnalites-avancees-de-java\nW3Schools: https://www.w3schools.com/java/"
+    else:
+        links = "Je ne peux pas vous donner de liens pour le moment."
+    await ctx.send(links)
+    await ctx.send("Bonne chance dans votre apprentissage !")
+    question_tree.reset()
+
+@bot.command(name="non")
+async def non(ctx):
+    await ctx.send("N'hésitez pas à revenir vers moi si vous avez besoin d'aide.")
+    question_tree.reset()
+
+@bot.command(name="speak")
+async def speak(ctx, subject: str):
+    supported_languages = ["python", "java"]
+    if subject.lower() in supported_languages:
+        await ctx.send(f"Oui, je parle de {subject.capitalize()}.")
+    else:
+        await ctx.send(f"Désolé, je ne parle pas de {subject.capitalize()}.")
+
+
+#################################################################################################################""
 
 # Lancement du bot 
 bot.run(config.api_key)
