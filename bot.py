@@ -63,7 +63,7 @@ question_tree = BinaryTree(root)
 @bot.event
 async def on_ready():
     print(f"{bot.user.name} has connected to Discord!")
-    await send_motivation_quote() #teste de l'envoi de la citation
+    #await send_motivation_quote() #teste de l'envoi de la citation
 
 # Définition d'une commande pour supprimer les messages en masse(limitation à 10)
 @bot.command(name="del")
@@ -269,11 +269,44 @@ user_histories = {int(user_id): CommandHistory.from_dict(history_data) for user_
 
 
 ############################################################################## Systeme de sondages ######################################################################
+
+# Fonction qui Charge les données d'un fichier JSON et renvoie un dictionnaire.
+def load_data_from_json(file_name):
+    try:
+        with open(file_name, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+# Fonction qui Sauvegarde les données dans un fichier JSON.
+def save_data_to_json(file_name, data):
+    with open(file_name, "w") as f:
+        json.dump(data, f)
+
+# Fonctions pour sauvegarder et charger les sondages
+def save_polls():
+    with open('polls.json', 'w') as f:
+        json.dump(polls, f, ensure_ascii=False, indent=4)
+
+def load_polls():
+    try:
+        with open('polls.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+polls_data = load_data_from_json("polls.json")
+poll_names_data = load_data_from_json("poll_names.json")
+
+# Charge le fichier JSON des sondages
+polls = load_polls()
+
 # Initialisation du dictionnaire pour stocker les sondages
-polls = {}
+polls = {int(msg_id): (int(author_id), max_votes, {int(user_id): votes for user_id, votes in user_votes.items()})
+         for msg_id, (author_id, max_votes, user_votes) in polls_data.items()}
 
 # stocker les noms des sondages et leurs identifiants de message 
-poll_names = {}
+poll_names = {name: int(msg_id) for name, msg_id in poll_names_data.items()}
 
 # Commande pour créer un sondage
 @bot.command(name="create_poll")
@@ -305,6 +338,11 @@ async def create_poll(ctx, name: str, max_votes: int, question: str, *choices: s
     # Enregistrement du sondage
     polls[sent_message.id] = (ctx.author.id, max_votes, {})
     poll_names[name.lower()] = sent_message.id
+    save_polls()
+
+    save_data_to_json("polls.json", polls)
+    save_data_to_json("poll_names.json", poll_names)
+
 
 @bot.command(name="result")
 async def result(ctx, poll_name: str):
@@ -315,7 +353,7 @@ async def result(ctx, poll_name: str):
 
     message_id = poll_names[poll_name]
     if message_id not in polls:
-        await ctx.send("Le sondage demandé n'a pas été trouvé.")
+        await ctx.        send("Le sondage demandé n'a pas été trouvé.")
         return
 
     _, _, user_votes = polls[message_id]
@@ -348,6 +386,9 @@ async def on_reaction_add(reaction, user):
                 await reaction.remove(user)
             else:
                 user_votes[user.id].append(reaction.emoji)
+
+    save_data_to_json("polls.json", polls)
+
 
 # Événement déclenché lorsqu'une réaction est supprimée
 @bot.event
