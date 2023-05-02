@@ -71,3 +71,16 @@ class CommandHistory:
         self.first_node = None
         self.last_node = None
         self.all_commands.clear()
+
+    def __str__(self):
+        if self.first_node is None:
+            return "Pas d'historique"
+
+        commands = []
+        current_node = self.first_node
+        while current_node is not None:
+            commands.append(current_node.data)
+            current_node = current_node.next_node
+
+        return "\n".join(commands)
+

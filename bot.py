@@ -17,12 +17,16 @@ intents.members = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Création d'instances des modules personnalisés pour le bot
-bot.history = CommandHistory()
 bot.command_queue = queue("première commande")
 
+# Création d'un dictionnaire pour stocker les historiques des commandes pour chaque utilisateur
+user_histories = {}
+
+# liste des commandes à ignorer
 ignored_commands = ["!lastcmd", "!forward", "!back", "!history", "!clear_history"]
 
 ################################################ Création de l'arbre binaire #################################################################
+
 root = BinaryTreeNode("Quel langage de programmation souhaitez-vous apprendre (Python ou Java) ?")
 left_child = BinaryTreeNode("Voulez-vous apprendre les bases de Python ou les concepts avancés ?")
 right_child = BinaryTreeNode("Voulez-vous apprendre les bases de Java ou les concepts avancés ?")
@@ -69,49 +73,62 @@ async def before_any_command(ctx):
 @bot.event
 async def on_command_completion(ctx):
     if ctx.message.content not in ignored_commands:
-        bot.history.add_command(ctx.message.content)
-
-# Commande pour afficher l'historique des commandes
+        user_id = ctx.author.id
+        if user_id not in user_histories:
+            user_histories[user_id] = CommandHistory()
+        user_histories[user_id].add_command(ctx.message.content)
+                
 @bot.command(name="history")
 async def history(ctx):
-    commands = bot.history.get_all_commands()
-    if commands == "Pas d'historique":
+    user_id = ctx.author.id
+    if user_id not in user_histories:
         await ctx.send("Aucune commande dans l'historique.")
     else:
-        commands_str = "\n".join(commands)
+        commands_str = str(user_histories[user_id])
         await ctx.send(f"Voici toutes les commandes que vous avez entrées :\n```{commands_str}```")
 
-# Commande pour afficher la dernière commande
+#
 @bot.command(name="lastcmd")
 async def last_command(ctx):
-    last_cmd = bot.history.get_last_command()
-    if last_cmd == "Pas d'historique":
+    user_id = ctx.author.id
+    if user_id not in user_histories:
         await ctx.send("Aucune commande dans l'historique.")
     else:
+        last_cmd = user_histories[user_id].get_last_command()
         await ctx.send(f"Dernière commande : {last_cmd}")
 
-# Commande pour revenir en arrière dans l'historique des commandes
+#
 @bot.command(name="back")
 async def back(ctx):
-    command = bot.history.move_backward()
-    if command:
-        await ctx.send(f"Dernière commande : {command}")
-    else:
+    user_id = ctx.author.id
+    if user_id not in user_histories:
         await ctx.send("Début de l'historique atteint.")
+    else:
+        command = user_histories[user_id].move_backward()
+        if command:
+            await ctx.send(f"Dernière commande : {command}")
+        else:
+            await ctx.send("Début de l'historique atteint.")
 
-# Commande pour avancer dans l'historique des commandes
+#
 @bot.command(name="forward")
 async def forward(ctx):
-    command = bot.history.move_forward()
-    if command:
-        await ctx.send(f"Dernière commande : {command}")
-    else:
+    user_id = ctx.author.id
+    if user_id not in user_histories:
         await ctx.send("Fin de l'historique atteint.")
+    else:
+        command = user_histories[user_id].move_forward()
+        if command:
+            await ctx.send(f"Dernière commande : {command}")
+        else:
+            await ctx.send("Fin de l'historique atteint.")
 
-# Commande pour effacer l'historique des commandes
+#
 @bot.command(name="clear_history")
 async def clear_history(ctx):
-    bot.history.clear()
+    user_id = ctx.author.id
+    if user_id in user_histories:
+        user_histories[user_id].clear()
     await ctx.send("L'historique a été supprimé.")
 
 ########################################################### datetime ############################################################################
