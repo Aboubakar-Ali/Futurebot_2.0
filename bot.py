@@ -4,10 +4,13 @@ import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import aiohttp
 import config
+import json
+
 
 from module1 import CommandHistory
 from module2 import queue
 from module3 import *
+
 
 # Création des intents pour le bot
 intents = discord.Intents.all()
@@ -16,14 +19,19 @@ intents.members = True
 # Création de l'objet bot avec le préfixe de commande et les intents
 bot = commands.Bot(command_prefix='!', intents=intents)
 
+
 # Création d'instances des modules personnalisés pour le bot
 bot.command_queue = queue("première commande")
 
 # Création d'un dictionnaire pour stocker les historiques des commandes pour chaque utilisateur
 user_histories = {}
 
+
 # liste des commandes à ignorer
 ignored_commands = ["!lastcmd", "!forward", "!back", "!history", "!clear_history"]
+
+# fichier json
+user_histories_file = "user_histories.json"
 
 ################################################ Création de l'arbre binaire #################################################################
 
@@ -45,7 +53,8 @@ right_child.right = java_advanced
 question_tree = BinaryTree(root)
 
 
-############################################################## Commandes de Bases ################################################################################
+############################################################## Commandes de Bases ###################################################################
+
 
 # Définition d'un événement pour quand le bot est prêt
 @bot.event
@@ -70,22 +79,21 @@ async def before_any_command(ctx):
         bot.command_queue.append(ctx)
         await ctx.send("Votre commande est dans la liste d'attente.")
 
-@bot.event
-async def on_command_completion(ctx):
-    if ctx.message.content not in ignored_commands:
-        user_id = ctx.author.id
-        if user_id not in user_histories:
-            user_histories[user_id] = CommandHistory()
-        user_histories[user_id].add_command(ctx.message.content)
-                
+               
 @bot.command(name="history")
 async def history(ctx):
     user_id = ctx.author.id
     if user_id not in user_histories:
-        await ctx.send("Aucune commande dans l'historique.")
-    else:
-        commands_str = str(user_histories[user_id])
-        await ctx.send(f"Voici toutes les commandes que vous avez entrées :\n```{commands_str}```")
+        await ctx.send("Aucun historique trouvé.")
+        return
+
+    history = user_histories[user_id].get_all_commands()
+    if not history:
+        await ctx.send("Aucun historique trouvé.")
+        return
+
+    history_string = "\n".join(history)
+    await ctx.send(f"Voici votre historique de commandes:\n```\n{history_string}\n```")
 
 #
 @bot.command(name="lastcmd")
@@ -138,37 +146,6 @@ async def clear_history(ctx):
 async def current_datetime(ctx):
     now = datetime.datetime.now()
     await ctx.send(f"La date et l'heure actuelles sont : {now.strftime('%Y-%m-%d %H:%M:%S')}")
-
-
-
-######################################################## API message motivation ##################################################################
- 
-# Récupération d'une citation motivante aléatoire
-async def get_random_motivation_quote():
-    async with aiohttp.ClientSession() as session:
-        async with session.get("https://zenquotes.io/api/random") as response:
-            if response.status == 200:
-                quote_data = await response.json()
-                quote = quote_data[0]["q"]
-                author = quote_data[0]["a"]
-                return f"{quote} - {author}"
-            else:
-                return "Erreur lors de la récupération de la citation."
-
-
-# Envoi de la citation motivante
-async def send_motivation_quote():
-    quote = await get_random_motivation_quote()
-    channel = bot.get_channel(1091337472782377002)
-    await channel.send(quote)
-
-
-# Planifier de l'envoi de citations 
-scheduler = AsyncIOScheduler()
-scheduler.add_job(send_motivation_quote, 'cron', hour=6, minute=0)
-scheduler.start()
-
-
 
 ####################################################### Commandes arbre ###########################################################################
 
@@ -240,7 +217,72 @@ async def speak(ctx, subject: str):
         await ctx.send(f"Désolé, je ne parle pas de {subject.capitalize()}.")
 
 
-#################################################################################################################""
+######################################################## API message motivation #########################################################################################
+ 
+# Récupération d'une citation motivante aléatoire
+async def get_random_motivation_quote():
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://zenquotes.io/api/random") as response:
+            if response.status == 200:
+                quote_data = await response.json()
+                quote = quote_data[0]["q"]
+                author = quote_data[0]["a"]
+                return f"{quote} - {author}"
+            else:
+                return "Erreur lors de la récupération de la citation."
+
+
+# Envoi de la citation motivante
+async def send_motivation_quote():
+    quote = await get_random_motivation_quote()
+    channel = bot.get_channel(1091337472782377002)
+    await channel.send(quote)
+
+
+# Planifier de l'envoi de citations 
+scheduler = AsyncIOScheduler()
+scheduler.add_job(send_motivation_quote, 'cron', hour=6, minute=0)
+scheduler.start()
+
+################################################################ Systeme de sauvegarde et de recuperation de données #####################################################################
+
+#fonction qui Charge les données d'un fichier JSON et renvoie un dictionnaire.
+def load_data_from_json(file_name):
+    try:
+        with open(file_name, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+# fonction qui Sauvegarde les données dans un fichier JSON.
+def save_data_to_json(file_name, data):
+    with open(file_name, "w") as f:
+        json.dump(data, f)
+
+#charge le fichier json
+user_histories_data = load_data_from_json(user_histories_file)
+#stocke les historiques des commandes de chaque utilisateur sous forme d'instances de la classe CommandHistory, indexées par les identifiants des utilisateurs.
+user_histories = {int(user_id): CommandHistory.from_dict(history_data) for user_id, history_data in user_histories_data.items()}
+
+
+########################################################## Événements déclenchés lors du debut et de la fin de l'execution #########################################
+@bot.event
+async def on_command(ctx):
+    user_id = ctx.author.id
+    if user_id not in user_histories:
+        user_histories[user_id] = CommandHistory()
+
+    command_name = ctx.message.content.split()[0]
+    if command_name not in ignored_commands:
+        user_histories[user_id].add_command(ctx.message.content)
+
+
+@bot.event
+async def on_command_completion(ctx):
+    save_data_to_json(user_histories_file, {user_id: history.to_dict() for user_id, history in user_histories.items()})
+
+
+
 
 # Lancement du bot 
 bot.run(config.api_key)

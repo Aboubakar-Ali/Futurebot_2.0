@@ -11,6 +11,7 @@ class CommandHistory:
         self.first_node = None
         self.last_node = None
         self.all_commands = []
+        self.current_position = 0
 
     def add_command(self, data):
         new_node = CommandNode(data)
@@ -72,15 +73,24 @@ class CommandHistory:
         self.last_node = None
         self.all_commands.clear()
 
-    def __str__(self):
-        if self.first_node is None:
-            return "Pas d'historique"
-
+    def to_dict(self):
         commands = []
         current_node = self.first_node
         while current_node is not None:
             commands.append(current_node.data)
             current_node = current_node.next_node
 
-        return "\n".join(commands)
+        return {
+            "commands": commands,
+            "current_position": self.current_position
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        command_history = cls()
+        for command in data["commands"]:
+            command_history.add_command(command)
+        command_history.current_position = data["current_position"]
+
+        return command_history
 
