@@ -1,10 +1,13 @@
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import aiohttp
 import config
 import json
+from discord.utils import get
+import collections
+
 
 
 from module1 import CommandHistory
@@ -265,6 +268,99 @@ user_histories_data = load_data_from_json(user_histories_file)
 user_histories = {int(user_id): CommandHistory.from_dict(history_data) for user_id, history_data in user_histories_data.items()}
 
 
+############################################################################## Systeme de sondages ######################################################################
+# Initialisation du dictionnaire pour stocker les sondages
+polls = {}
+
+# stocker les noms des sondages et leurs identifiants de message 
+poll_names = {}
+
+# Commande pour créer un sondage
+@bot.command(name="create_poll")
+async def create_poll(ctx, name: str, max_votes: int, question: str, *choices: str):
+    if len(choices) < 2:
+        await ctx.send("Veuillez fournir au moins deux choix pour le sondage.")
+        return
+    if len(choices) > 10:
+        await ctx.send("Veuillez fournir au maximum dix choix pour le sondage.")
+        return
+    if max_votes < 1 or max_votes > len(choices):
+        await ctx.send(f"Veuillez fournir un nombre valide de votes maximum entre 1 et {len(choices)}.")
+        return
+
+    # Liste des émojis de numéros pour les réactions
+    number_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+
+    # Création et envoi du message de sondage
+    poll_message = f"**Sondage créé par {ctx.author.display_name}**\n\n{question}\n\n"
+    for i, choice in enumerate(choices, 1):
+        poll_message += f"{number_emojis[i-1]} {choice}\n"
+    poll_message += f"\nVous pouvez voter pour un maximum de {max_votes} choix."
+    sent_message = await ctx.send(poll_message)
+
+    # Ajout des réactions au message de sondage
+    for i in range(len(choices)):
+        await sent_message.add_reaction(number_emojis[i])
+
+    # Enregistrement du sondage
+    polls[sent_message.id] = (ctx.author.id, max_votes, {})
+    poll_names[name.lower()] = sent_message.id
+
+@bot.command(name="result")
+async def result(ctx, poll_name: str):
+    poll_name = poll_name.lower()
+    if poll_name not in poll_names:
+        await ctx.send("Aucun sondage avec ce nom n'a été trouvé.")
+        return
+
+    message_id = poll_names[poll_name]
+    if message_id not in polls:
+        await ctx.send("Le sondage demandé n'a pas été trouvé.")
+        return
+
+    _, _, user_votes = polls[message_id]
+    results = collections.Counter()
+    for votes in user_votes.values():
+        for vote in votes:
+            results[vote] += 1
+
+    number_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+    result_message = f"Résultats du sondage '{poll_name}':\n\n"
+    for emoji, count in results.items():
+        result_message += f"{emoji} : {count} vote(s)\n"
+
+    await ctx.send(result_message)
+
+
+# Événement déclenché lorsqu'une réaction est ajoutée
+@bot.event
+async def on_reaction_add(reaction, user):
+    if user.bot:
+        return
+
+    if reaction.message.id in polls:
+        author_id, max_votes, user_votes = polls[reaction.message.id]
+
+        if user.id not in user_votes:
+            user_votes[user.id] = [reaction.emoji]
+        else:
+            if len(user_votes[user.id]) >= max_votes:
+                await reaction.remove(user)
+            else:
+                user_votes[user.id].append(reaction.emoji)
+
+# Événement déclenché lorsqu'une réaction est supprimée
+@bot.event
+async def on_reaction_remove(reaction, user):
+    if user.bot:
+        return
+
+    if reaction.message.id in polls:
+        _, _, user_votes = polls[reaction.message.id]
+
+        if user.id in user_votes and reaction.emoji in user_votes[user.id]:
+            user_votes[user.id].remove(reaction.emoji)
+
 ########################################################## Événements déclenchés lors du debut et de la fin de l'execution #########################################
 @bot.event
 async def on_command(ctx):
@@ -280,8 +376,6 @@ async def on_command(ctx):
 @bot.event
 async def on_command_completion(ctx):
     save_data_to_json(user_histories_file, {user_id: history.to_dict() for user_id, history in user_histories.items()})
-
-
 
 
 # Lancement du bot 
