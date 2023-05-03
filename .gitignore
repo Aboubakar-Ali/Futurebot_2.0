@@ -1,15 +1,14 @@
-config.py
-bot.config.py
-tst0.py
+configs.py
+https.py
+meteo.py
+poll_names.json
+polls.json
 tst.py
+tst0.py
 tst2.py
 tst3.py
 tst4.py
 user_histories.json
-poll_names.json
-polls.json
-botpython.py
-meteo.py
-documentation technique.docx
+documentation.docs
 
 
