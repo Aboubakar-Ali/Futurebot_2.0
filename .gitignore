@@ -1,3 +1,4 @@
+config.py
 bot.config.py
 tst0.py
 tst.py
@@ -10,3 +11,5 @@ polls.json
 botpython.py
 meteo.py
 documentation technique.docx
+
+
