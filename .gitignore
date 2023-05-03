@@ -1,4 +1,4 @@
-config.py
+bot.config.py
 tst0.py
 tst.py
 tst2.py
@@ -7,3 +7,6 @@ tst4.py
 user_histories.json
 poll_names.json
 polls.json
+botpython.py
+meteo.py
+documentation technique.docx
