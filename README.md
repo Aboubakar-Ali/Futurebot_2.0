@@ -7,7 +7,7 @@ Création d'un BOT Discord en Python <img src="https://raw.githubusercontent.com
 
 
 <p align="center">
-  <img src="imgage/bot.jpg" alt="AbdelCop photo de profil" style="border-radius: 50%;">
+  <img src="image/bot.jpg" alt="AbdelCop photo de profil" style="border-radius: 50%;">
 </p>
 
 Le petit nouveau, AbdelCop = Abdel + Cop(Bot).
