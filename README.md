@@ -33,7 +33,7 @@ Ce référentiel me permet de publier mon travail et de vous présenter une dém
 
 Cher Visiteurs,
 
-Je tenais à vous informer que je suis partiellement satisfait de mon travail actuel sur le bot, mais je suis déterminé à l'améliorer jusqu'à ce que je sois totalement satisfait. Malheureusement, je n'ai pas eu le temps de diviser mon code en parties distinctes, mais je prévois de le faire progressivement. Je suis conscient de l'importance de cette pratique et je m'engage à fournir un travail de qualité. Vos commentaires et suggestions sont les bienvenus. Je reste à votre disposition pour toute question ou demande spécifique concernant le bot.
+Je tenais à vous informer que je suis partiellement satisfait de mon travail actuel sur le bot, mais je suis déterminé à l'améliorer jusqu'à ce que je sois totalement satisfait. Vos commentaires et suggestions sont les bienvenus. Je reste à votre disposition pour toute question ou demande spécifique concernant le bot.
 
 Cordialement,
 
