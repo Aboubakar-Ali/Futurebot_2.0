@@ -1,1 +1,1 @@
-{"db2117898ef39822410dcd165dbb36085a0edcd7920a30c7849fbf0d49e8fb27": {"commands": ["!create_poll \"sondage_test\" 2 \"Quelle est votre couleur pr\u00e9f\u00e9r\u00e9e ?\" \"Rouge\" \"Vert\" \"Bleu\"", "!result sondage_test"], "current_position": 0}}
+{"db2117898ef39822410dcd165dbb36085a0edcd7920a30c7849fbf0d49e8fb27": {"commands": ["!create_poll \"sondage_test\" 2 \"Quelle est votre couleur pr\u00e9f\u00e9r\u00e9e ?\" \"Rouge\" \"Vert\" \"Bleu\"", "!result sondage_test", "!focus"], "current_position": 0}}

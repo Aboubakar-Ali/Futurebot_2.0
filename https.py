@@ -4,7 +4,8 @@ import configs
 
 # import historique
 from structures.module1 import CommandHistory
-from bot.events import   user_histories_file, user_histories
+from structures.module2 import queue
+from bot.events import   user_histories_file, user_histories, ignored_commands
 from commands.file_utils import load_data_from_json, save_data_to_json
 from commands.focus import setup as focus_setup
 from commands.back import setup as back_setup
@@ -49,6 +50,15 @@ user_histories_data = load_data_from_json(user_histories_file)
 for hashed_id, history_data in user_histories_data.items():
     user_histories.append(hashed_id, CommandHistory.from_dict(history_data))
 
+# Création d'instances des modules personnalisés pour le bot
+bot.command_queue = queue("première commande")
+
+# ajout à la liste d'attentes avant l'exécution
+@bot.before_invoke
+async def before_any_command(ctx):
+    if not ctx.command.name in ignored_commands:
+        bot.command_queue.append(ctx)
+        await ctx.send("Votre commande est dans la liste d'attente.")
 
 
 # Setup des commandes history
