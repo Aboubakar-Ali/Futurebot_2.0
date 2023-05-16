@@ -16,3 +16,12 @@ class hashmap:
       if key == key_datas:
         return value_datas
     return None
+  
+  def remove(self, key):
+    hashed_key = hash(key)
+    indice = hashed_key % len(self.datas)
+    for i, kv in enumerate(self.datas[indice]):
+        if kv[0] == key:
+            del self.datas[indice][i]
+            return True
+    return False
